@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique @db.VarChar(50)
+  email    String @unique @db.VarChar(50)
+  password String
+  namaLengkap String @map("nama_lengkap") @db.VarChar(100)
+  idJabatan Int @map("id_jabatan") @unique 
+  jabatan Jabatan @relation(fields:[idJabatan], references: [id])
+  refreshToken String? @map("refresh_token") @unique
+  tglBuat DateTime @map("tgl_buat") @default(now())
+  tglEdit DateTime @map("tgl_edit") @updatedAt
+
+  @@map("user")
+}
+
+model Jabatan {
+    id Int @id @default(autoincrement())
+    namaJabatan String @map("nama_jabatan") @unique @db.VarChar(20)
+    user User[]
+
+    @@map("jabatan")
+  }
+
+model RawatJalan {
+    id Int @id @default(autoincrement())
+    idPasien Int @map("id_pasien")
+    pasien Pasien @relation(fields: [idPasien], references: [id])
+    tanggalMasuk DateTime @map("tanggal_masuk") @default(now())
+    keluhan String
+    kode String @db.VarChar(5)
+    
+    @@map("rawat_jalan")
+  }
+
+model Pasien {
+  id            Int      @id @default(autoincrement())
+  noRm         String   @map("no_rm") @unique @db.VarChar(15)
+  idIdentitas  String @map("id_identitas")
+  wna           String?  @default("WNI") @db.VarChar(3)
+  namaLengkap  String   @map("nama_lengkap") @db.VarChar(50)
+  jenisKelamin String   @map("jenis_kelamin") @db.VarChar(10)
+  tglLahir     DateTime @map("tgl_lahir")
+  tmptLahir    String   @map("tmpt_lahir") @db.VarChar(50)
+  agama         String   @db.VarChar(10)
+  alamat        String   @db.VarChar(50)
+  provinsi      String   @db.VarChar(30)
+  rt            String   @db.VarChar(3)
+  rw            String   @db.VarChar(3)
+  kecamatan     String   @db.VarChar(20)
+  kelurahan     String   @db.VarChar(20)
+  pekerjaan     String   @db.VarChar(20)
+  pernikahan    String   @db.VarChar(15)
+  pendidikan    String   @db.VarChar(10)
+  golDarah     String   @map("gol_darah") @db.VarChar(2)
+  noAsuransi   String   @map("no_asuransi") @db.VarChar(15)
+  ibuKandung   String   @map("ibu_kandung") @db.VarChar(20)
+  noTlp        String   @map("no_tlp") @db.VarChar(12)
+  rawatJalan RawatJalan[]
+  tglDaftar     DateTime @map("tgl_daftar") @default(now())
+  tglEdit      DateTime @map("tgl_edit") @updatedAt
+
+  @@map("pasien")
+}
+
+
+
