@@ -1,6 +1,7 @@
 import express from "express";
 import pasienRoute from "./routes/pasien.routes";
 import authRouter from "./routes/auth.routes";
+import outpatientRouter from "./routes/outpatient.route";
 import verifyJWT from "./middleware/verifyJWT.middleware";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -20,8 +21,9 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 
-app.use("/api/pasien", verifyJWT, pasienRoute);
 app.use("/api/auth", authRouter);
+app.use("/api/pasien", verifyJWT, pasienRoute);
+app.use("/api/rawat-jalan", verifyJWT, outpatientRouter);
 
 app.listen(port, host, () => {
   console.log(`Server berjalan di http://${host}:${port}`);
