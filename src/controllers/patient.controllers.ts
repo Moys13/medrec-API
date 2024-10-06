@@ -126,47 +126,47 @@ export const getAllPatients = async (req: Request, res: Response) => {
 };
 
 export const createPatient = async (req: Request, res: Response) => {
-  const userRole = req.user.jabatan;
+  const role = req.user.jabatan;
 
-  if (userRole === "Admin" || userRole === "Staff Rekam Medis") {
-    const data: patientRequest = req.body;
-    const norm = await normAuto();
-    try {
-      const addPatient = await prisma.pasien.create({
-        data: {
-          noRm: norm,
-          ...data,
+  if (role !== "Admin" || role !== "Staff Rekam Medis") {
+    return res.status(401).json(
+      responseApi("401", "Tidak dapat menambahkan data pasien", null, {
+        message: "User tidak memiliki akses untuk menambahkan data pasien",
+      }),
+    );
+  }
+  const data: patientRequest = req.body;
+  const norm = await normAuto();
+  try {
+    const addPatient = await prisma.pasien.create({
+      data: {
+        noRm: norm,
+        ...data,
+      },
+    });
+    res.status(200).json(
+      responseApi<typeof addPatient>(
+        "200",
+        "Berhasil menambahkan data pasien",
+        addPatient,
+        null,
+        {
+          rekamMedis: `/`,
         },
-      });
-      res.status(200).json(
-        responseApi<typeof addPatient>(
-          "200",
-          "Berhasil menambahkan data pasien",
-          addPatient,
+      ),
+    );
+  } catch (error: any) {
+    res
+      .status(500)
+      .json(
+        responseApi(
+          "500",
+          "Terjadi kesalahan saat menyimpan data",
           null,
-          {
-            rekamMedis: `/`,
-          },
+          error.message,
         ),
       );
-    } catch (error: any) {
-      res
-        .status(500)
-        .json(
-          responseApi(
-            "500",
-            "Terjadi kesalahan saat menyimpan data",
-            null,
-            error.message,
-          ),
-        );
-    }
   }
-  return res.status(401).json(
-    responseApi("401", "Tidak dapat mengambil data pasien", null, {
-      message: "User tidak memiliki akses untuk melihat data pasien",
-    }),
-  );
 };
 
 export const medicalRecords = async (req: Request, res: Response) => {

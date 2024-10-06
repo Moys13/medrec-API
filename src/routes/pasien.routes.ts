@@ -1,15 +1,15 @@
 import express from "express";
 import {
-  createPasien,
-  getAllPasien,
-  rekamMedis,
-} from "../controllers/pasien.controllers";
+  createPatient,
+  getAllPatients,
+  medicalRecords,
+} from "../controllers/patient.controllers";
 
 const router = express.Router();
 
-router.get("/", getAllPasien);
-router.post("/", createPasien);
+router.get("/", getAllPatients);
+router.post("/", createPatient);
 
-router.get("/:id?/rekam-medis", rekamMedis);
+router.get("/:id?/rekam-medis", medicalRecords);
 
 export default router;
