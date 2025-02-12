@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  createPatient,
+  addPatient,
   getAllPatients,
   medicalRecords,
 } from "../controllers/patient.controllers";
@@ -8,7 +8,7 @@ import {
 const router = express.Router();
 
 router.get("/", getAllPatients);
-router.post("/", createPatient);
+router.post("/", addPatient);
 
 router.get("/:id?/rekam-medis", medicalRecords);
 

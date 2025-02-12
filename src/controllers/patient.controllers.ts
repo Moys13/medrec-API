@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import responseApi from "../utils/response";
 import normAuto from "../utils/normauto";
 import { dateHandle } from "../utils/date";
+import { prisma } from "../utils/prisma";
 
 export interface patientRequest {
   idIdentitas: string;
@@ -27,108 +27,103 @@ export interface patientRequest {
   ibuKandung: string;
 }
 
-const prisma = new PrismaClient();
-
-export const getAllPatients = async (req: Request, res: Response) => {
+export const getAllPatients = async (req: Request, res: Response): Promise<any> => {
   const userRole = req.user.jabatan;
 
-  if (userRole === "Admin" || userRole === "Staff Rekam Medis") {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const norm = req.query.norm as string;
+  if (userRole !== "Admin" && userRole !== "Staff Rekam Medis") {
+    return res.status(401).json(
+      responseApi("401", "Tidak dapat mengambil data pasien", null, {
+        message: "User tidak memiliki akses untuk melihat data pasien",
+      }),
+    );
+  }
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const norm = req.query.norm as string;
 
-      if (norm) {
-        const data = await prisma.pasien.findUnique({
-          where: {
-            noRm: norm,
-          },
-        });
-        if (!data)
-          return res.status(404).json(
-            responseApi<null>("404", "Data tidak ditemukan", null, {
-              message: "Data yang anda cari tidak ada atau salah penginputan",
-            }),
-          );
-        console.log(req.user);
-        return res
-          .status(200)
-          .json(
-            responseApi<typeof data>("200", "Berhasil mengambil data", data),
-          );
-      }
-
-      const skip = (page - 1) * limit;
-      const take = limit;
-
-      const { startDate, endDate } = dateHandle(
-        req.query.startDate as string,
-        req.query.endDate as string,
-      );
-
-      const data = await prisma.pasien.findMany({
-        skip: skip,
-        take: take,
+    if (norm) {
+      const data = await prisma.pasien.findUnique({
         where: {
-          tglDaftar: {
-            gte: startDate,
-            lte: endDate,
-          },
+          noRm: norm,
         },
       });
-
-      const totalPatient = await prisma.pasien.count({
-        where: {
-          tglDaftar: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-      });
-
-      const totalPages = Math.ceil(totalPatient / limit);
-
-      if (data.length === 0)
+      if (!data)
         return res.status(404).json(
-          responseApi<null>("404", "Gagal mengambil data", null, null, {
-            message: "Tidak ada data yang tersedia",
+          responseApi<null>("404", "Data tidak ditemukan", null, {
+            message: "Data yang anda cari tidak ada atau salah penginputan",
           }),
         );
-      res.json(
-        responseApi<typeof data>(
-          "200",
-          "Berhasil mengambil semua data pasien",
-          data,
-          null,
-          {
-            totalPatient,
-            totalPages,
-            currentPage: page,
-            limit: limit,
-            startDate,
-            endDate,
-          },
-        ),
-      );
-    } catch (error: any) {
-      res.status(500).json(
-        responseApi<null>("500", "Tidak dapat mengambil data", null, {
-          message: error.message,
+      return res
+        .status(200)
+        .json(responseApi<typeof data>("200", "Berhasil mengambil data", data));
+    }
+
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const { startDate, endDate } = dateHandle(
+      req.query.startDate as string,
+      req.query.endDate as string,
+    );
+
+    const data = await prisma.pasien.findMany({
+      skip: skip,
+      take: take,
+      where: {
+        tglDaftar: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+
+    const totalPatient = await prisma.pasien.count({
+      where: {
+        tglDaftar: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+
+    const totalPages = Math.ceil(totalPatient / limit);
+
+    if (data.length === 0)
+      return res.status(404).json(
+        responseApi<null>("404", "Gagal mengambil data", null, null, {
+          message: "Tidak ada data yang tersedia",
         }),
       );
-    }
+    return res.json(
+      responseApi<typeof data>(
+        "200",
+        "Berhasil mengambil semua data pasien",
+        data,
+        null,
+        {
+          totalPatient,
+          totalPages,
+          currentPage: page,
+          limit: limit,
+          startDate,
+          endDate,
+        },
+      ),
+    );
+  } catch (error: any) {
+    return res.status(500).json(
+      responseApi<null>("500", "Tidak dapat mengambil data", null, {
+        message: error.message,
+      }),
+    );
   }
-  return res.status(401).json(
-    responseApi("401", "Tidak dapat mengambil data pasien", null, {
-      message: "User tidak memiliki akses untuk melihat data pasien",
-    }),
-  );
 };
 
-export const createPatient = async (req: Request, res: Response) => {
+export const addPatient = async (req: Request, res: Response): Promise<any> => {
   const role = req.user.jabatan;
 
-  if (role !== "Admin" || role !== "Staff Rekam Medis") {
+  if (role !== "Admin" && role !== "Staff Rekam Medis") {
     return res.status(401).json(
       responseApi("401", "Tidak dapat menambahkan data pasien", null, {
         message: "User tidak memiliki akses untuk menambahkan data pasien",
@@ -144,7 +139,7 @@ export const createPatient = async (req: Request, res: Response) => {
         ...data,
       },
     });
-    res.status(200).json(
+    return res.status(200).json(
       responseApi<typeof addPatient>(
         "200",
         "Berhasil menambahkan data pasien",
@@ -156,7 +151,7 @@ export const createPatient = async (req: Request, res: Response) => {
       ),
     );
   } catch (error: any) {
-    res
+    return res
       .status(500)
       .json(
         responseApi(
@@ -169,7 +164,7 @@ export const createPatient = async (req: Request, res: Response) => {
   }
 };
 
-export const medicalRecords = async (req: Request, res: Response) => {
+export const medicalRecords = async (req: Request, res: Response): Promise<any> => {
   const { id } = req.params;
 
   if (!id) {

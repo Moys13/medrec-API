@@ -5,7 +5,7 @@ import responseApi from "../utils/response";
 
 dotenv.config();
 
-const verifyJWT = (req: Request, res: Response, next: NextFunction) => {
+const verifyJWT = (req: Request, res: Response, next: NextFunction): any => {
   const token = req.cookies.access_token;
   if (!token)
     return res.status(401).json(

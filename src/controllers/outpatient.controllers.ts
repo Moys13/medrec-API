@@ -1,11 +1,9 @@
-import { PrismaClient } from "@prisma/client";
 import { Response, Request } from "express";
 import { dateHandle } from "../utils/date";
 import responseApi from "../utils/response";
+import { prisma } from "../utils/prisma";
 
-const prisma = new PrismaClient();
-
-export const getAllOutpatients = async (req: Request, res: Response) => {
+export const getAllOutpatients = async (req: Request, res: Response): Promise<any> => {
   const queryStartDate =
     (req.query.startDate as string) || new Date().toLocaleDateString();
   const queryEndDate =
@@ -90,7 +88,7 @@ export const getAllOutpatients = async (req: Request, res: Response) => {
   }
 };
 
-export const createOutpatient = async (req: Request, res: Response) => {
+export const createOutpatient = async (req: Request, res: Response): Promise<any> => {
   const role = req.user.jabatan;
 
   if (role !== "Staff Rekam Medis" && role !== "Admin")
@@ -129,7 +127,7 @@ export const createOutpatient = async (req: Request, res: Response) => {
   }
 };
 
-export const getOutpatientById = async (req: Request, res: Response) => {
+export const getOutpatientById = async (req: Request, res: Response): Promise<any> => {
   const { id } = req.params;
   try {
     const outpatient = await prisma.rawatJalan.findUnique({
@@ -183,7 +181,7 @@ export const getOutpatientById = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteOutpatient = async (req: Request, res: Response) => {
+export const deleteOutpatient = async (req: Request, res: Response): Promise<any> => {
   const role = req.user.jabatan;
 
   if (role !== "Admin")
@@ -234,7 +232,7 @@ export const deleteOutpatient = async (req: Request, res: Response) => {
   }
 };
 
-export const updateOutpatient = async (req: Request, res: Response) => {
+export const updateOutpatient = async (req: Request, res: Response): Promise<any> => {
   const role = req.user.jabatan;
 
   if (role !== "Admin")

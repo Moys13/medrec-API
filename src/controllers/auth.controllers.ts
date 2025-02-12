@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 
@@ -8,10 +7,9 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt";
 import responseApi from "../utils/response";
+import { prisma } from "../utils/prisma";
 
-const prisma = new PrismaClient();
-
-export const userLogin = async (req: Request, res: Response) => {
+export const userLogin = async (req: Request, res: Response): Promise<any> => {
   const { username, password } = req.body;
 
   const user = await prisma.user.findUnique({
@@ -30,7 +28,7 @@ export const userLogin = async (req: Request, res: Response) => {
     return res.status(401).json(
       responseApi("401", "Tidak ada akses masuk", null, {
         message: "Akun tidak terdaftar",
-      }),
+      })
     );
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -38,7 +36,7 @@ export const userLogin = async (req: Request, res: Response) => {
     return res.status(401).json(
       responseApi("401", "Tidak ada akses masuk", {
         message: "Username atau password salah",
-      }),
+      })
     );
 
   const accessToken = generateAccessToken({
@@ -58,28 +56,32 @@ export const userLogin = async (req: Request, res: Response) => {
   });
   res.cookie("access_token", accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 15 * 60 * 1000,
+    secure: false, // Harus false di localhost
+    sameSite: "lax", // Lax untuk pengembangan di localhost
+    maxAge: 30 * 1000, // Sesuaikan umur cookie
   });
 
   res.cookie("refresh_token", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 15 * 60 * 1000,
+    secure: false, // Harus false di localhost
+    sameSite: "lax", // Lax untuk pengembangan di localhost
+    maxAge: 1 * 24 * 60 * 60 * 1000,
   });
-
   res.json(
-    responseApi("200", "Berhasil masuk", { accessToken, refreshToken }, null),
+    responseApi("200", "Berhasil masuk", { accessToken, refreshToken }, null)
   );
 };
 
-export const refreshToken = async (req: Request, res: Response) => {
+export const refreshToken = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
   const refreshToken = req.cookies.refresh_token;
   if (!refreshToken)
     return res.status(401).json(
       responseApi("401", "Tidak ada akses", null, {
         message: "Tidak ada refresh token tersedia",
-      }),
+      })
     );
 
   const payload = verifyRefreshToken(refreshToken);
@@ -87,7 +89,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     return res.status(401).json(
       responseApi("401", "Tidak ada akses", null, {
         message: "Refresh token tidak valid",
-      }),
+      })
     );
 
   const user = await prisma.user.findUnique({
@@ -108,7 +110,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       responseApi("401", "Tidak ada akses", null, {
         message:
           "tidak ada user yang ditemukan atau atau refresh token kadaluarsa",
-      }),
+      })
     );
 
   const newAccessToken = generateAccessToken({
@@ -120,22 +122,30 @@ export const refreshToken = async (req: Request, res: Response) => {
   res.cookie("access_token", newAccessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    maxAge: 15 * 60 * 1000,
+    maxAge: 30 * 1000,
   });
 
   res.status(204).send();
 };
 
-export const userLogout = async (req: Request, res: Response) => {
-  const refreshToken = req.cookies.refresh_token;
+export const userLogout = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const refreshToken = req.cookies.refresh_token;
 
-  await prisma.user.update({
-    where: { refreshToken },
-    data: { refreshToken: null },
-  });
+    await prisma.user.update({
+      where: { refreshToken },
+      data: { refreshToken: null },
+    });
 
-  res.clearCookie("access_token");
-  res.clearCookie("refresh_token");
+    res.clearCookie("access_token");
+    res.clearCookie("refresh_token");
 
-  res.json(responseApi("200", "Berhasil logout", null, null));
+    res.json(responseApi("200", "Berhasil logout", null, null));
+  } catch (error: any) {
+    res.json(
+      responseApi("500", "Tidak dapat logout", null, {
+        message: error.message,
+      })
+    );
+  }
 };
